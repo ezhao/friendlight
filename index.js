@@ -1,8 +1,19 @@
 var express = require('express');
 var app = express();
 var bodyParser = require('body-parser');
+var Sequelize = require('sequelize');
 var pg = require('pg');
 var util = require('util');
+
+var sequelize = new Sequelize('postgres:///emily_zhao');
+
+var Friend = sequelize.define('friend', {
+  name: {
+    type: Sequelize.STRING,
+    field: 'name'
+  }
+});
+
 
 app.set('port', (process.env.PORT || 5000));
 
@@ -15,7 +26,6 @@ app.set('views', __dirname + '/views');
 app.set('view engine', 'ejs');
 
 
-
 // Additional middleware which will set headers that we need on each request.
 app.use(function(req, res, next) {
     // Set permissive CORS header - this allows this server to be used only as
@@ -26,9 +36,6 @@ app.use(function(req, res, next) {
     res.setHeader('Cache-Control', 'no-cache');
     next();
 });
-
-
-
 
 
 app.get('/', function(request, response) {
@@ -52,18 +59,13 @@ app.get('/db', function (request, response) {
 });
 
 app.get('/api/friends', function(request, response) {
-  pg.connect(process.env.DATABASE_URL, function(err, client, done) {
-    client.query('SELECT * FROM friends', function(err, result) {
-      done();
-      if (err) { onErrorLogResponse(err, response); }
-      else {
-        var jsonArray = [];
-        (result.rows).forEach(function(row) {
-          jsonArray.push(row);
-        });
-        response.json(jsonArray);
-      }
+  Friend.sync()
+  Friend.findAll().then(function(result) {
+    var jsonArray = [];
+    result.forEach(function(row) {
+      jsonArray.push({ name : row.name});
     });
+    response.json(jsonArray);
   });
 });
 
@@ -74,15 +76,9 @@ app.post('/api/friends', function(request, response) {
     //    notes: request.body.notes,
   };
 
-  pg.connect(process.env.DATABASE_URL, function(err, client, done) {
-    var query = util.format('insert into friends (name) values (\'%s\');', newFriend.name);
-    console.log(query);
-    client.query(query, function(err, result) {
-      done();
-      if (err) { onErrorLogResponse(err, response); }
-      else {
-        response.end('Success'); // TODO(emily)
-      }
+  Friend.sync().then(function () {
+    return Friend.create({
+      name: newFriend.name
     });
   });
 });
