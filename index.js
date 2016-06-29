@@ -5,7 +5,7 @@ var Sequelize = require('sequelize');
 var pg = require('pg');
 var util = require('util');
 
-var sequelize = new Sequelize('postgres:///emily_zhao');
+var sequelize = new Sequelize(process.env.DATABASE_URL);
 
 var Friend = sequelize.define('friend', {
   name: {
