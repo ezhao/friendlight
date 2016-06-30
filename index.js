@@ -79,6 +79,8 @@ app.post('/api/friends', function(request, response) {
   Friend.sync().then(function () {
     return Friend.create({
       name: newFriend.name
+    }).then(function() {
+      response.json({result: "Success"});
     });
   });
 });
