@@ -22,7 +22,7 @@ var Friend = sequelize.define('friend', {
     defaultValue: Sequelize.NOW
   },
   notes: {
-    type: Sequelize.BLOB
+    type: Sequelize.TEXT
   }
 });
 
@@ -107,6 +107,7 @@ app.get('/api/friends/:id', function(request, response) {
     var jsonResponse = {
         name : result.name,
         id: result.id,
+        notes: result.notes,
       };
     response.json(jsonResponse);
   });
@@ -114,7 +115,7 @@ app.get('/api/friends/:id', function(request, response) {
 
 /*
  * Add a friend
- * TODO: emily update friend
+ * Expected: name
  */
 app.post('/api/friends', function(request, response) {
   var newFriend = {
@@ -123,6 +124,28 @@ app.post('/api/friends', function(request, response) {
 
   Friend.sync().then(
     Friend.create({name: newFriend.name}).then(
+      response.json({result: "Success"})
+    )
+  );
+});
+
+/*
+ * Update a friend
+ * Expected: notes
+ */
+app.post('/api/friends/:id', function(request, response) {
+  var updates = {
+    notes: request.body.notes
+  };
+
+  var options = {
+    where: {
+      id: request.params.id
+    },
+  };
+
+  Friend.sync().then(
+    Friend.update(updates, options).then(
       response.json({result: "Success"})
     )
   );
