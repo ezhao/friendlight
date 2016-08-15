@@ -81,29 +81,51 @@ app.get('/db', function (request, response) {
   });
 });
 
+/*
+ * List all the friends, just friend and id for now
+ */
 app.get('/api/friends', function(request, response) {
   Friend.sync()
   Friend.findAll().then(function(result) {
     var jsonArray = [];
     result.forEach(function(row) {
-      jsonArray.push({name : row.name});
+      jsonArray.push({
+        name : row.name,
+        id: row.id,
+      });
     });
     response.json(jsonArray);
   });
 });
 
+/*
+ * Get detailed information about a friend given the id
+ */
+app.get('/api/friends/:id', function(request, response) {
+  Friend.sync();
+  Friend.findById(request.params.id).then(function(result) {
+    var jsonResponse = {
+        name : result.name,
+        id: result.id,
+      };
+    response.json(jsonResponse);
+  });
+});
+
+/*
+ * Add a friend
+ * TODO: emily update friend
+ */
 app.post('/api/friends', function(request, response) {
   var newFriend = {
     name: request.body.name
   };
 
-  Friend.sync().then(function () {
-    return Friend.create({
-      name: newFriend.name
-    }).then(function(friend) {
-      response.json({result: "Success"});
-    });
-  });
+  Friend.sync().then(
+    Friend.create({name: newFriend.name}).then(
+      response.json({result: "Success"})
+    )
+  );
 });
 
 function onErrorLogResponse(err, response) {
