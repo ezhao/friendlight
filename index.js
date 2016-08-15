@@ -9,11 +9,32 @@ var sequelize = new Sequelize(process.env.DATABASE_URL);
 
 var Friend = sequelize.define('friend', {
   name: {
-    type: Sequelize.STRING,
-    field: 'name'
+    type: Sequelize.STRING
+  },
+  contactInterval: {
+    type: Sequelize.INTEGER,
+    field: 'contact_interval',
+    defaultValue: 0
+  },
+  nextInteraction: {
+    type: Sequelize.DATE,
+    field: 'next_interaction',
+    defaultValue: Sequelize.NOW
+  },
+  notes: {
+    type: Sequelize.BLOB
   }
 });
 
+// TODO(emily) Interactions is untested
+var Interactions = sequelize.define('interaction', {
+  createdTime: {
+    type: Sequelize.DATE,
+    defaultValue: Sequelize.NOW,
+    field: 'created_time'
+  }
+});
+Interactions.belongsTo(Friend);
 
 app.set('port', (process.env.PORT || 5000));
 
@@ -50,10 +71,12 @@ app.get('/db', function (request, response) {
   pg.connect(process.env.DATABASE_URL, function(err, client, done) {
     client.query('SELECT * FROM test_table', function(err, result) {
       done();
-      if (err)
-       { console.error(err); response.send("Error " + err); }
-      else
-       { response.render('pages/db', {results: result.rows} ); }
+      if (err) {
+        console.error(err);
+        response.send("Error " + err);
+      } else {
+        response.render('pages/db', {results: result.rows});
+      }
     });
   });
 });
@@ -63,7 +86,7 @@ app.get('/api/friends', function(request, response) {
   Friend.findAll().then(function(result) {
     var jsonArray = [];
     result.forEach(function(row) {
-      jsonArray.push({ name : row.name});
+      jsonArray.push({name : row.name});
     });
     response.json(jsonArray);
   });
@@ -71,15 +94,13 @@ app.get('/api/friends', function(request, response) {
 
 app.post('/api/friends', function(request, response) {
   var newFriend = {
-    name: request.body.name,
-    //    frequency: request.body.frequency,
-    //    notes: request.body.notes,
+    name: request.body.name
   };
 
   Friend.sync().then(function () {
     return Friend.create({
       name: newFriend.name
-    }).then(function() {
+    }).then(function(friend) {
       response.json({result: "Success"});
     });
   });
