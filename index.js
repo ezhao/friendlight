@@ -110,6 +110,7 @@ app.get('/api/friends/:id', function(request, response) {
         name : friend.name,
         id: friend.id,
         notes: friend.notes,
+        contactInterval: friend.contactInterval,
       };
       return friend.getInteractions();
     })
@@ -131,12 +132,18 @@ app.post('/api/friends', function(request, response) {
 
 /*
  * Update a friend
- * Expected: notes
+ * Optional: notes, contactInterval
  */
 app.post('/api/friends/:id', function(request, response) {
-  var updates = {
-    notes: request.body.notes
-  };
+  var updates = {};
+  var notes = request.body.notes;
+  if (notes) {
+    updates.notes = notes;
+  }
+  var contactInterval = request.body.contactInterval;
+  if (contactInterval) {
+    updates.contactInterval = contactInterval;
+  }
 
   var options = {
     where: {
