@@ -55,6 +55,10 @@ app.use(function(req, res, next) {
 });
 
 app.get('/', function(request, response) {
+  // Hack to create tables when they don't exist
+  Friend.sync();
+  Interactions.sync();
+
   response.render('pages/index');
 });
 
