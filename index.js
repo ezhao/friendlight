@@ -84,7 +84,7 @@ app.get('/db', function (request, response) {
  */
 app.get('/api/friends', function(request, response) {
   var options = {
-    order: [['nextInteraction', 'DESC']],
+    order: [['nextInteraction', 'ASC']],
   };
   Friends.sync()
     .then(() => Friends.findAll(options))
@@ -139,24 +139,28 @@ app.post('/api/friends', function(request, response) {
  * Optional: notes, contactInterval
  */
 app.post('/api/friends/:id', function(request, response) {
-  var updates = {};
-  var notes = request.body.notes;
-  if (notes) {
-    updates.notes = notes;
-  }
+  var updates = {
+    notes: request.body.notes, // handles undef
+  };
   var contactInterval = request.body.contactInterval;
   if (contactInterval) {
-    updates.contactInterval = contactInterval;
+    updates.contactInterval = contactInterval; // doesn't handle undef for some reason
   }
 
-  var options = {
-    where: {
-      id: request.params.id
-    },
-  };
+  var friendId = request.params.id;
+  var interactionsOptions = {where: {friendId: friendId}};
+  var friendsOptions = {where: {id: friendId}};
 
   Friends.sync()
-    .then(() => Friends.update(updates, options))
+    .then(() => updates.contactInterval ? Interactions.max('createdAt', interactionsOptions) : null)
+    .then((maxInteraction) => {
+      if (maxInteraction) {
+        updates.nextInteraction = moment(new Date(maxInteraction))
+          .add(updates.contactInterval, 'day')
+          .toDate();
+      }
+      return Friends.update(updates, friendsOptions);
+    })
     .then(() => response.json({result: "Success"}));
 });
 
