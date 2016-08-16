@@ -7,18 +7,16 @@ var util = require('util');
 
 var sequelize = new Sequelize(process.env.DATABASE_URL);
 
-var Friend = sequelize.define('friend', {
+var Friends = sequelize.define('friends', {
   name: {
     type: Sequelize.STRING
   },
   contactInterval: {
     type: Sequelize.INTEGER,
-    field: 'contact_interval',
     defaultValue: 0
   },
   nextInteraction: {
     type: Sequelize.DATE,
-    field: 'next_interaction',
     defaultValue: Sequelize.NOW
   },
   notes: {
@@ -26,11 +24,11 @@ var Friend = sequelize.define('friend', {
   }
 });
 
-var Interactions = sequelize.define('interaction', {
+var Interactions = sequelize.define('interactions', {
   // nothing for now
 });
 
-Friend.hasMany(Interactions);
+Friends.hasMany(Interactions);
 
 app.set('port', (process.env.PORT || 5000));
 
@@ -56,7 +54,7 @@ app.use(function(req, res, next) {
 
 app.get('/', function(request, response) {
   // Hack to create tables when they don't exist
-  Friend.sync();
+  Friends.sync();
   Interactions.sync();
 
   response.render('pages/index');
@@ -84,17 +82,22 @@ app.get('/db', function (request, response) {
  * List all the friends, just friend and id for now
  */
 app.get('/api/friends', function(request, response) {
-  Friend.sync()
-  Friend.findAll().then(function(result) {
-    var jsonArray = [];
-    result.forEach(function(row) {
-      jsonArray.push({
-        name : row.name,
-        id: row.id,
+  var options = {
+    order: [['nextInteraction', 'DESC']],
+  };
+  Friends.sync()
+    .then(() => Friends.findAll(options))
+    .then((result) => {
+      var jsonArray = [];
+      result.forEach(function(row) {
+        jsonArray.push({
+          name : row.name,
+          id: row.id,
+          nextInteraction: row.nextInteraction,
+        });
       });
+      response.json(jsonArray);
     });
-    response.json(jsonArray);
-  });
 });
 
 /*
@@ -103,8 +106,8 @@ app.get('/api/friends', function(request, response) {
  */
 app.get('/api/friends/:id', function(request, response) {
   var res = {};
-  Friend.sync()
-    .then(() => Friend.findById(request.params.id))
+  Friends.sync()
+    .then(() => Friends.findById(request.params.id))
     .then(friend => {
       res = {
         name : friend.name,
@@ -125,8 +128,8 @@ app.get('/api/friends/:id', function(request, response) {
  * Expected: name
  */
 app.post('/api/friends', function(request, response) {
-  Friend.sync()
-    .then(() => Friend.create({name: request.body.name}))
+  Friends.sync()
+    .then(() => Friends.create({name: request.body.name}))
     .then(friend => response.json({result: "Success"}));
 });
 
@@ -151,8 +154,8 @@ app.post('/api/friends/:id', function(request, response) {
     },
   };
 
-  Friend.sync()
-    .then(() => Friend.update(updates, options))
+  Friends.sync()
+    .then(() => Friends.update(updates, options))
     .then(() => response.json({result: "Success"}));
 });
 
