@@ -137,6 +137,7 @@ app.post('/api/friends', function(request, response) {
 /*
  * Update a friend
  * Optional: notes, contactInterval
+ * Special business logic: when updating contactInterval also updates nextInteraction
  */
 app.post('/api/friends/:id', function(request, response) {
   var updates = {
@@ -167,12 +168,23 @@ app.post('/api/friends/:id', function(request, response) {
 /*
  * Add an interaction
  * Expected: friendId
+ * Special business logic: also updates nextInteraction for associated friend
  */
 app.post('/api/interactions', function(request, response) {
   Interactions.sync()
     .then(() => Interactions.create({friendId: request.body.friendId}))
+    .then((interaction) => updateNextInteraction(request.body.friendId, interaction.createdAt))
     .then(() => response.json({result: "Success"}));
 });
+
+updateNextInteraction = (friendId, interaction) => {
+  var interactionMoment = moment(new Date(interaction));
+  return Friends.findById(friendId)
+    .then((friend) => {
+      interactionMoment.add(friend.contactInterval, 'day');
+      return friend.update({nextInteraction: interactionMoment.toDate()});
+    });
+};
 
 function onErrorLogResponse(err, response) {
   console.error(err);
