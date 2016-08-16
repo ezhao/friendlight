@@ -26,15 +26,11 @@ var Friend = sequelize.define('friend', {
   }
 });
 
-// TODO(emily) Interactions is untested
 var Interactions = sequelize.define('interaction', {
-  createdTime: {
-    type: Sequelize.DATE,
-    defaultValue: Sequelize.NOW,
-    field: 'created_time'
-  }
+  // nothing for now
 });
-Interactions.belongsTo(Friend);
+
+Friend.hasMany(Interactions);
 
 app.set('port', (process.env.PORT || 5000));
 
@@ -57,7 +53,6 @@ app.use(function(req, res, next) {
     res.setHeader('Cache-Control', 'no-cache');
     next();
 });
-
 
 app.get('/', function(request, response) {
   response.render('pages/index');
@@ -99,18 +94,25 @@ app.get('/api/friends', function(request, response) {
 });
 
 /*
- * Get detailed information about a friend given the id
+ * Get detailed information about a friend given the id,
+ * including a list of all interactions
  */
 app.get('/api/friends/:id', function(request, response) {
-  Friend.sync();
-  Friend.findById(request.params.id).then(function(result) {
-    var jsonResponse = {
-        name : result.name,
-        id: result.id,
-        notes: result.notes,
+  var res = {};
+  Friend.sync()
+    .then(() => Friend.findById(request.params.id))
+    .then(friend => {
+      res = {
+        name : friend.name,
+        id: friend.id,
+        notes: friend.notes,
       };
-    response.json(jsonResponse);
-  });
+      return friend.getInteractions();
+    })
+    .then(interactions => {
+      res.interactions = interactions;
+      response.json(res);
+    });
 });
 
 /*
@@ -118,15 +120,9 @@ app.get('/api/friends/:id', function(request, response) {
  * Expected: name
  */
 app.post('/api/friends', function(request, response) {
-  var newFriend = {
-    name: request.body.name
-  };
-
-  Friend.sync().then(
-    Friend.create({name: newFriend.name}).then(
-      response.json({result: "Success"})
-    )
-  );
+  Friend.sync()
+    .then(() => Friend.create({name: request.body.name}))
+    .then(friend => response.json({result: "Success"}));
 });
 
 /*
@@ -144,11 +140,19 @@ app.post('/api/friends/:id', function(request, response) {
     },
   };
 
-  Friend.sync().then(
-    Friend.update(updates, options).then(
-      response.json({result: "Success"})
-    )
-  );
+  Friend.sync()
+    .then(() => Friend.update(updates, options))
+    .then(() => response.json({result: "Success"}));
+});
+
+/*
+ * Add an interaction
+ * Expected: friendId
+ */
+app.post('/api/interactions', function(request, response) {
+  Interactions.sync()
+    .then(() => Interactions.create({friendId: request.body.friendId}))
+    .then(() => response.json({result: "Success"}));
 });
 
 function onErrorLogResponse(err, response) {
